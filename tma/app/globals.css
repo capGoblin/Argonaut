@@ -1,0 +1,169 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  /* Base Colors */
+  --tg-theme-bg-color: #17212b;
+  --tg-theme-secondary-bg: #232e3c;
+  --tg-theme-text-color: #ffffff;
+  --tg-theme-secondary-text: #8a8f97;
+  --tg-theme-hint-color: #6c7883;
+  --tg-theme-link-color: #62aaff;
+  --tg-theme-button-color: #2ea6ff;
+  --tg-theme-button-text-color: #ffffff;
+  
+  /* Additional Colors */
+  --tg-theme-error: #ff3b30;
+  --tg-theme-success: #34c759;
+  --tg-theme-warning: #ff9500;
+  --tg-theme-divider: #293442;
+  
+  /* Card and Modal Colors */
+  --tg-theme-card-bg: #1c2733;
+  --tg-theme-modal-bg: #17212b;
+  
+  /* Input Colors */
+  --tg-theme-input-bg: #242f3d;
+  --tg-theme-input-border: #293442;
+  --tg-theme-input-active: #2ea6ff;
+
+  /* Font Sizes */
+  --tg-font-headline: 1.25rem;
+  --tg-font-body: 1rem;
+  --tg-font-caption: 0.875rem;
+  --tg-font-small: 0.75rem;
+}
+
+@layer base {
+  * {
+    @apply border-0;
+  }
+  
+  body {
+    @apply bg-[var(--tg-theme-bg-color)] text-[var(--tg-theme-text-color)] antialiased;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  }
+
+  /* Touch target sizing */
+  button, a, input, select {
+    @apply min-h-[44px] min-w-[44px];
+  }
+
+  /* Remove default focus outlines and replace with custom styles */
+  input:focus, button:focus, select:focus {
+    @apply outline-none ring-1 ring-[var(--tg-theme-input-active)] ring-opacity-50;
+  }
+}
+
+@layer components {
+  .tg-card {
+    @apply bg-[var(--tg-theme-card-bg)] rounded-2xl p-4 shadow-lg transition-all duration-200;
+  }
+
+  .tg-input {
+    @apply bg-[var(--tg-theme-input-bg)] rounded-xl px-4 py-3 text-[var(--tg-theme-text-color)] w-full transition-colors border-0 focus:bg-[var(--tg-theme-secondary-bg)];
+  }
+
+  .tg-label {
+    @apply text-[var(--tg-theme-secondary-text)] text-sm mb-2 block;
+  }
+
+  .tg-button {
+    @apply bg-[var(--tg-theme-button-color)] text-[var(--tg-theme-button-text-color)] rounded-xl px-6 py-3 font-medium transition-all duration-200 hover:opacity-90 active:opacity-70 disabled:opacity-50 shadow-md hover:shadow-lg;
+  }
+
+  .tg-button-secondary {
+    @apply bg-[var(--tg-theme-secondary-bg)] text-[var(--tg-theme-text-color)] shadow-md hover:shadow-lg;
+  }
+
+  /* Dialog styling */
+  [role="dialog"] {
+    @apply rounded-2xl bg-[var(--tg-theme-modal-bg)] shadow-2xl border-0;
+  }
+
+  [role="dialog"] [data-radix-popper-content-wrapper] {
+    @apply border-0 !important;
+  }
+
+  /* Card styling within dialog */
+  [role="dialog"] .tg-card {
+    @apply bg-[var(--tg-theme-secondary-bg)] border-0;
+  }
+
+  /* Input styling within dialog */
+  [role="dialog"] input,
+  [role="dialog"] select,
+  [role="dialog"] button[role="combobox"] {
+    @apply bg-[var(--tg-theme-input-bg)] border-0;
+  }
+
+  /* Select styling */
+  [role="listbox"] {
+    @apply bg-[var(--tg-theme-card-bg)] rounded-xl border-0 shadow-lg;
+  }
+
+  .select-content {
+    @apply border-0 shadow-lg;
+  }
+
+  /* Card hover effect */
+  .tg-card:hover {
+    @apply shadow-xl bg-opacity-80;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    @apply w-1.5;
+  }
+
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+
+  ::-webkit-scrollbar-thumb {
+    @apply bg-[var(--tg-theme-divider)] rounded-full;
+  }
+
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-[var(--tg-theme-secondary-text)];
+  }
+}
+
+@layer utilities {
+  .animate-slide-up {
+    animation: slide-up 0.2s ease-out;
+  }
+  
+  .animate-slide-down {
+    animation: slide-down 0.2s ease-out;
+  }
+
+  .touch-feedback {
+    @apply transition-opacity duration-150;
+  }
+
+  .touch-feedback:active {
+    @apply opacity-70;
+  }
+}
+
+@keyframes slide-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+@keyframes slide-down {
+  from { transform: translateY(0); }
+  to { transform: translateY(100%); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.loading {
+  animation: pulse 1.5s ease-in-out infinite;
+  background: var(--tg-theme-secondary-bg);
+}
