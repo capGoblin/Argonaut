@@ -8,7 +8,15 @@ import { TransactionsList } from "@/components/transactions/transaction-list";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Plus, Send } from "lucide-react";
 import type { Transaction } from "@/components/transactions/transaction-list";
-import { Account, cairo, Contract, uint256, num, RPC } from "starknet";
+import {
+  Account,
+  cairo,
+  Contract,
+  uint256,
+  num,
+  RPC,
+  provider,
+} from "starknet";
 import { RpcProvider } from "starknet";
 
 // Mock data for demonstration
@@ -59,6 +67,22 @@ const argentTMA = ArgentTMA.init({
         contract: contractAddress,
         selector: "get_transactions_len",
       },
+      {
+        contract: contractAddress,
+        selector: "get_signers",
+      },
+      {
+        contract: contractAddress,
+        selector: "get_threshold",
+      },
+      {
+        contract: contractAddress,
+        selector: "get_transaction",
+      },
+      {
+        contract: contractAddress,
+        selector: "is_confirmed",
+      },
     ],
     validityDays: 90, // session validity (in days) - default: 90
   },
@@ -73,6 +97,11 @@ export default function Home() {
   const [argentTMAInstance, setArgentTMAInstance] = useState<any>(null);
   const [connectionResult, setConnectionResult] = useState<any>(null);
   const [contractAbi, setContractAbi] = useState<any>(null);
+  const [contract, setContract] = useState<any>(null);
+
+  const [data, setData] = useState<any>(null);
+  const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [refresh, setRefresh] = useState(0);
 
   // useEffect(() => {
   //   const connect = async () => {
@@ -117,6 +146,7 @@ export default function Home() {
         setAccount(account);
         setIsConnected(true);
         setConnectionResult(res);
+
         // Custom data passed to the requestConnection() method is available here
         console.log("callback data:", callbackData);
       })
@@ -140,8 +170,117 @@ export default function Home() {
     // });
 
     // await argentTMA.connect();
+
+    const provider = new RpcProvider({
+      nodeUrl: "https://free-rpc.nethermind.io/sepolia-juno",
+    });
+    const { abi: contractAbi } = await provider.getClassAt(contractAddress);
+    if (contractAbi === undefined) {
+      throw new Error("no abi.");
+    }
+    // setContractAbi(contractAbi);
+    const contract = new Contract(contractAbi, contractAddress, provider);
+    setContract(contract);
+    // const privateKey0 = connectionResult?.account?.signer?.pk;
+    // const account0Address = connectionResult?.account?.address;
+
+    // const account = new Account(provider, account0Address, privateKey0);
+
+    // 4. Connect account to contract (missing)
+    contract.connect(account);
+
     await argentTMA.requestConnection({});
   };
+  useEffect(() => {
+    const getContract = async () => {
+      const provider = new RpcProvider({
+        nodeUrl: "https://free-rpc.nethermind.io/sepolia-juno",
+      });
+      const { abi: contractAbi } = await provider.getClassAt(contractAddress);
+      if (contractAbi === undefined) {
+        throw new Error("no abi.");
+      }
+      const contract = new Contract(contractAbi, contractAddress, provider);
+      contract.connect(account);
+      setContract(contract);
+
+      // Fetch signers
+      const signersResult = await contract.get_signers();
+      const hexSigners = signersResult.map(
+        (signer: bigint) => "0x" + signer.toString(16).padStart(64, "0")
+      );
+
+      // Get transaction length
+      const txLen = await contract.get_transactions_len();
+      console.log("Transaction Length:", txLen.toString());
+
+      const threshold = await contract.get_threshold();
+      console.log("Threshold:", threshold.toString());
+
+      // Fetch all transactions
+      const allTxs: Transaction[] = [];
+      for (let i = 0; i < Number(txLen.toString()); i++) {
+        const tx = await contract.get_transaction(i);
+        const isExecuted = await contract.is_executed(i);
+        console.log(`Transaction ${i}:`, tx, 'Executed:', isExecuted);
+        
+        const receiverHex = "0x" + BigInt(tx[0].to).toString(16).padStart(64, "0");
+        
+        allTxs.push({
+            id: i.toString(),
+            receiver: receiverHex,
+            amount: "0.0001",
+            token: "ETH",
+            confirmations: Number(tx[0].confirmations),
+            requiredConfirmations: Number(threshold.toString()),
+            signers: hexSigners,
+            status: isExecuted === 1 ? "executed" : "pending",
+            timestamp: Date.now(),
+        });
+      }
+      setTransactions(allTxs);
+
+      // Update UI with signers and tx length
+      setData(
+        `Signers:\n${hexSigners.join("\n")}\n\nTransaction Length: ${txLen.toString()}`
+      );
+    };
+    getContract();
+  }, [account, refresh]);
+
+  const getSigners = async () => {
+    if (!contract) {
+      console.log("Contract not initialized yet");
+      return;
+    }
+    try {
+      // Get signers
+      const signersResult = await contract.get_signers();
+      console.log("Signers:", signersResult);
+
+      // Convert array of signers to hex strings
+      const hexSigners = signersResult.map(
+        (signer: bigint) => "0x" + signer.toString(16).padStart(64, "0")
+      );
+
+      // Get transaction length
+      const txLen = await contract.get_transactions_len();
+      console.log("Transaction Length:", txLen.toString());
+
+      // Display both signers and transaction length
+      setData(
+        `Signers:\n${hexSigners.join(
+          "\n"
+        )}\n\nTransaction Length: ${txLen.toString()}`
+      );
+    } catch (error) {
+      console.error("Error:", error);
+    }
+  };
+
+  useEffect(() => {
+    getSigners();
+  }, [contract]);
 
   const handleCreateMultisig = async (signers: string[], threshold: number) => {
     console.log("Creating multisig:", { signers, threshold });
@@ -180,74 +319,75 @@ export default function Home() {
     amount: string,
     token: string
   ) => {
-    console.log("Submitting transaction:", { receiver, amount, token });
-    const provider = new RpcProvider({
-      nodeUrl: "https://free-rpc.nethermind.io/sepolia-juno",
-    });
+    getSigners();
+    // console.log("Submitting transaction:", { receiver, amount, token });
+    // const provider = new RpcProvider({
+    //   nodeUrl: "https://free-rpc.nethermind.io/sepolia-juno",
+    // });
 
-    const ethAmount = Number(amount);
-    const weiAmount = ethAmount * 1e18; // 1 ETH = 1e18 wei
+    // const ethAmount = Number(amount);
+    // const weiAmount = ethAmount * 1e18; // 1 ETH = 1e18 wei
 
-    // Convert wei to BigInt
-    const bigIntAmount = BigInt(Math.floor(weiAmount));
+    // // Convert wei to BigInt
+    // const bigIntAmount = BigInt(Math.floor(weiAmount));
 
-    // Convert to uint256
-    const uint256Value = uint256.bnToUint256(bigIntAmount);
+    // // Convert to uint256
+    // const uint256Value = uint256.bnToUint256(bigIntAmount);
 
-    const { abi: contractAbi } = await provider.getClassAt(contractAddress);
-    if (contractAbi === undefined) {
-      throw new Error("no abi.");
-    }
-    // setContractAbi(contractAbi);
-    const contract = new Contract(contractAbi, contractAddress, provider);
+    // const { abi: contractAbi } = await provider.getClassAt(contractAddress);
+    // if (contractAbi === undefined) {
+    //   throw new Error("no abi.");
+    // }
+    // // setContractAbi(contractAbi);
+    // const contract = new Contract(contractAbi, contractAddress, provider);
 
-    // const privateKey0 = connectionResult?.account?.signer?.pk;
-    // const account0Address = connectionResult?.account?.address;
+    // // const privateKey0 = connectionResult?.account?.signer?.pk;
+    // // const account0Address = connectionResult?.account?.address;
 
-    // const account = new Account(provider, account0Address, privateKey0);
+    // // const account = new Account(provider, account0Address, privateKey0);
 
-    // 4. Connect account to contract (missing)
-    contract.connect(account);
+    // // 4. Connect account to contract (missing)
+    // contract.connect(account);
 
-    const txLen = await contract.get_transactions_len();
-    console.log("Transaction Length:", txLen.toString());
+    // const txLen = await contract.get_transactions_len();
+    // console.log("Transaction Length:", txLen.toString());
 
-    // Convert txLen to proper nonce format
-    const nonce = BigInt(txLen.toString()).toString(); // Use the txLen directly without adding 1
+    // // Convert txLen to proper nonce format
+    // const nonce = BigInt(txLen.toString()).toString(); // Use the txLen directly without adding 1
 
-    const calls = contract.populate("submit_transaction", [
-      "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7", // to
-      "0x0083afd3f4caedc6eebf44246fe54e38c95e3179a5ec9ea81740eca5b482d12e", // function_selector
-      [
-        // function_calldata (as array)
-        receiver,
-        uint256Value.low.toString(16),
-        uint256Value.high.toString(16),
-      ],
-      nonce, // nonce
-    ]);
+    // const calls = contract.populate("submit_transaction", [
+    //   "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7", // to
+    //   "0x0083afd3f4caedc6eebf44246fe54e38c95e3179a5ec9ea81740eca5b482d12e", // function_selector
+    //   [
+    //     // function_calldata (as array)
+    //     receiver,
+    //     uint256Value.low.toString(16),
+    //     uint256Value.high.toString(16),
+    //   ],
+    //   nonce, // nonce
+    // ]);
 
-    const maxQtyGasAuthorized = BigInt(1800); // max quantity of gas authorized
-    const maxPriceAuthorizeForOneGas = BigInt(40) * BigInt(1000000000000); // increased from 12 to 40 to cover current gas price
+    // const maxQtyGasAuthorized = BigInt(1800); // max quantity of gas authorized
+    // const maxPriceAuthorizeForOneGas = BigInt(40) * BigInt(1000000000000); // increased from 12 to 40 to cover current gas price
 
-    const { transaction_hash } = await account.execute(calls, {
-      version: 3,
-      maxFee: 10 ** 15,
-      feeDataAvailabilityMode: RPC.EDataAvailabilityMode.L1,
-      resourceBounds: {
-        l1_gas: {
-          max_amount: num.toHex(maxQtyGasAuthorized),
-          max_price_per_unit: num.toHex(maxPriceAuthorizeForOneGas),
-        },
-        l2_gas: {
-          max_amount: num.toHex(0),
-          max_price_per_unit: num.toHex(0),
-        },
-      },
-    });
+    // const { transaction_hash } = await account.execute(calls, {
+    //   version: 3,
+    //   maxFee: 10 ** 15,
+    //   feeDataAvailabilityMode: RPC.EDataAvailabilityMode.L1,
+    //   resourceBounds: {
+    //     l1_gas: {
+    //       max_amount: num.toHex(maxQtyGasAuthorized),
+    //       max_price_per_unit: num.toHex(maxPriceAuthorizeForOneGas),
+    //     },
+    //     l2_gas: {
+    //       max_amount: num.toHex(0),
+    //       max_price_per_unit: num.toHex(0),
+    //     },
+    //   },
+    // });
 
-    await provider.waitForTransaction(transaction_hash);
- 
+    // await provider.waitForTransaction(transaction_hash);
+
     // // Convert 0.0001 ETH to wei
     // const ethAmount = Number("0.0001");
     // const weiAmount = ethAmount * 1e18; // 1 ETH = 1e18 wei
@@ -282,6 +422,39 @@ export default function Home() {
 
   const handleConfirmTransaction = async (txId: string) => {
     console.log("Confirming transaction:", txId);
+    try {
+        // Convert txId to nonce (u128)
+        const nonce = BigInt(txId).toString();
+
+        const calls = contract.populate("confirm_transaction", [nonce]);
+
+        const maxQtyGasAuthorized = BigInt(1800); // max quantity of gas authorized
+        const maxPriceAuthorizeForOneGas = BigInt(40) * BigInt(1000000000000); // max FRI authorized to pay 1 gas
+
+        const { transaction_hash } = await account.execute(calls, {
+            version: 3,
+            maxFee: 10 ** 15,
+            feeDataAvailabilityMode: RPC.EDataAvailabilityMode.L1,
+            resourceBounds: {
+                l1_gas: {
+                    max_amount: num.toHex(maxQtyGasAuthorized),
+                    max_price_per_unit: num.toHex(maxPriceAuthorizeForOneGas),
+                },
+                l2_gas: {
+                    max_amount: num.toHex(0),
+                    max_price_per_unit: num.toHex(0),
+                },
+            },
+        });
+
+        await contract.provider.waitForTransaction(transaction_hash);
+        console.log("Transaction confirmed successfully");
+        
+        // Trigger refresh by incrementing the counter
+        setRefresh(prev => prev + 1);
+    } catch (error) {
+        console.error("Error confirming transaction:", error);
+    }
   };
 
   const handleRevokeConfirmation = async (txId: string) => {
@@ -311,10 +484,18 @@ export default function Home() {
           </div>
           <div>
             <h3>Number of Transactions:</h3>
-            <pre className="overflow-auto">
-              {contractAbi ? contractAbi : "Loading..."}
-            </pre>
+            <pre className="overflow-auto">{data ? data : "Loading..."}</pre>
           </div>
+          {/* <div>
+            <h3>Signers:</h3>
+            <pre className="overflow-auto">
+              {signers.length > 0
+                ? signers.map((signer, index) => (
+                    <div key={index}>{signer}</div>
+                  ))
+                : "Loading signers..."}
+            </pre>
+          </div> */}
         </div>
 
         <h1 className="text-[var(--tg-font-headline)] font-bold text-center mb-6 text-[var(--tg-theme-text-color)]">
@@ -337,7 +518,7 @@ export default function Home() {
           <>
             <div className="tg-card">
               <TransactionsList
-                transactions={mockTransactions}
+                transactions={transactions}
                 onConfirm={handleConfirmTransaction}
                 onRevoke={handleRevokeConfirmation}
                 onExecute={handleExecuteTransaction}
