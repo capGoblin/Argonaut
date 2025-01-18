@@ -20,6 +20,8 @@ type Transaction = {
   timestamp: number;
 };
 
+export type { Transaction };
+
 type TransactionsListProps = {
   transactions: Transaction[];
   onConfirm: (txId: string) => Promise<void>;
@@ -31,7 +33,7 @@ export function TransactionsList({
   transactions,
   onConfirm,
   onRevoke,
-  onExecute
+  onExecute,
 }: TransactionsListProps) {
   const [selectedTx, setSelectedTx] = useState<Transaction | null>(null);
   const [loadingTxId, setLoadingTxId] = useState<string | null>(null);
@@ -82,7 +84,8 @@ export function TransactionsList({
                 <div className="mt-4 flex items-center justify-between">
                   <div className="flex items-center space-x-2">
                     <div className="text-sm text-muted-foreground">
-                      {tx.confirmations}/{tx.requiredConfirmations} confirmations
+                      {tx.confirmations}/{tx.requiredConfirmations}{" "}
+                      confirmations
                     </div>
                   </div>
 
