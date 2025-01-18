@@ -222,27 +222,30 @@ export default function Home() {
       for (let i = 0; i < Number(txLen.toString()); i++) {
         const tx = await contract.get_transaction(i);
         const isExecuted = await contract.is_executed(i);
-        console.log(`Transaction ${i}:`, tx, 'Executed:', isExecuted);
-        
-        const receiverHex = "0x" + BigInt(tx[0].to).toString(16).padStart(64, "0");
-        
+        console.log(`Transaction ${i}:`, tx, "Executed:", isExecuted);
+
+        const receiverHex =
+          "0x" + BigInt(tx[0].to).toString(16).padStart(64, "0");
+
         allTxs.push({
-            id: i.toString(),
-            receiver: receiverHex,
-            amount: "0.0001",
-            token: "ETH",
-            confirmations: Number(tx[0].confirmations),
-            requiredConfirmations: Number(threshold.toString()),
-            signers: hexSigners,
-            status: isExecuted === 1 ? "executed" : "pending",
-            timestamp: Date.now(),
+          id: i.toString(),
+          receiver: receiverHex,
+          amount: "0.0001",
+          token: "ETH",
+          confirmations: Number(tx[0].confirmations),
+          requiredConfirmations: Number(threshold.toString()),
+          signers: hexSigners,
+          status: Number(isExecuted) === 1 ? "executed" : "pending",
+          timestamp: Date.now(),
         });
       }
       setTransactions(allTxs);
 
       // Update UI with signers and tx length
       setData(
-        `Signers:\n${hexSigners.join("\n")}\n\nTransaction Length: ${txLen.toString()}`
+        `Signers:\n${hexSigners.join(
+          "\n"
+        )}\n\nTransaction Length: ${txLen.toString()}`
       );
     };
     getContract();
@@ -423,37 +426,37 @@ export default function Home() {
   const handleConfirmTransaction = async (txId: string) => {
     console.log("Confirming transaction:", txId);
     try {
-        // Convert txId to nonce (u128)
-        const nonce = BigInt(txId).toString();
+      // Convert txId to nonce (u128)
+      const nonce = BigInt(txId).toString();
 
-        const calls = contract.populate("confirm_transaction", [nonce]);
+      const calls = contract.populate("confirm_transaction", [nonce]);
 
-        const maxQtyGasAuthorized = BigInt(1800); // max quantity of gas authorized
-        const maxPriceAuthorizeForOneGas = BigInt(40) * BigInt(1000000000000); // max FRI authorized to pay 1 gas
+      const maxQtyGasAuthorized = BigInt(1800); // max quantity of gas authorized
+      const maxPriceAuthorizeForOneGas = BigInt(40) * BigInt(1000000000000); // max FRI authorized to pay 1 gas
 
-        const { transaction_hash } = await account.execute(calls, {
-            version: 3,
-            maxFee: 10 ** 15,
-            feeDataAvailabilityMode: RPC.EDataAvailabilityMode.L1,
-            resourceBounds: {
-                l1_gas: {
-                    max_amount: num.toHex(maxQtyGasAuthorized),
-                    max_price_per_unit: num.toHex(maxPriceAuthorizeForOneGas),
-                },
-                l2_gas: {
-                    max_amount: num.toHex(0),
-                    max_price_per_unit: num.toHex(0),
-                },
-            },
-        });
+      const { transaction_hash } = await account.execute(calls, {
+        version: 3,
+        maxFee: 10 ** 15,
+        feeDataAvailabilityMode: RPC.EDataAvailabilityMode.L1,
+        resourceBounds: {
+          l1_gas: {
+            max_amount: num.toHex(maxQtyGasAuthorized),
+            max_price_per_unit: num.toHex(maxPriceAuthorizeForOneGas),
+          },
+          l2_gas: {
+            max_amount: num.toHex(0),
+            max_price_per_unit: num.toHex(0),
+          },
+        },
+      });
 
-        await contract.provider.waitForTransaction(transaction_hash);
-        console.log("Transaction confirmed successfully");
-        
-        // Trigger refresh by incrementing the counter
-        setRefresh(prev => prev + 1);
+      await contract.provider.waitForTransaction(transaction_hash);
+      console.log("Transaction confirmed successfully");
+
+      // Trigger refresh by incrementing the counter
+      setRefresh((prev) => prev + 1);
     } catch (error) {
-        console.error("Error confirming transaction:", error);
+      console.error("Error confirming transaction:", error);
     }
   };
 
@@ -463,6 +466,39 @@ export default function Home() {
 
   const handleExecuteTransaction = async (txId: string) => {
     console.log("Executing transaction:", txId);
+    try {
+      // Convert txId to nonce (u128)
+      const nonce = BigInt(txId).toString();
+
+      const calls = contract.populate("execute_transaction", [nonce]);
+
+      const maxQtyGasAuthorized = BigInt(1800); // max quantity of gas authorized
+      const maxPriceAuthorizeForOneGas = BigInt(40) * BigInt(1000000000000); // max FRI authorized to pay 1 gas
+
+      const { transaction_hash } = await account.execute(calls, {
+        version: 3,
+        maxFee: 10 ** 15,
+        feeDataAvailabilityMode: RPC.EDataAvailabilityMode.L1,
+        resourceBounds: {
+          l1_gas: {
+            max_amount: num.toHex(maxQtyGasAuthorized),
+            max_price_per_unit: num.toHex(maxPriceAuthorizeForOneGas),
+          },
+          l2_gas: {
+            max_amount: num.toHex(0),
+            max_price_per_unit: num.toHex(0),
+          },
+        },
+      });
+
+      await contract.provider.waitForTransaction(transaction_hash);
+      console.log("Transaction executed successfully");
+
+      // Refresh the transactions list
+      setRefresh((prev) => prev + 1);
+    } catch (error) {
+      console.error("Error executing transaction:", error);
+    }
   };
 
   return (
