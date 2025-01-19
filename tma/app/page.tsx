@@ -193,35 +193,37 @@ export default function Home() {
   };
   useEffect(() => {
     const getContract = async () => {
+      if (!account) {
+        console.log("Account not initialized yet");
+        return;
+      }
+
       const provider = new RpcProvider({
         nodeUrl: "https://free-rpc.nethermind.io/sepolia-juno",
       });
+
       const { abi: contractAbi } = await provider.getClassAt(contractAddress);
       if (contractAbi === undefined) {
         throw new Error("no abi.");
       }
-      const contract = new Contract(contractAbi, contractAddress, provider);
-      contract.connect(account);
-      setContract(contract);
+      const newContract = new Contract(contractAbi, contractAddress, provider);
+      newContract.connect(account);
+      setContract(newContract);
 
-      // Fetch signers
-      const signersResult = await contract.get_signers();
+      // Now fetch data
+      const signersResult = await newContract.get_signers();
       const hexSigners = signersResult.map(
         (signer: bigint) => "0x" + signer.toString(16).padStart(64, "0")
       );
 
-      // Get transaction length
-      const txLen = await contract.get_transactions_len();
-      console.log("Transaction Length:", txLen.toString());
-
-      const threshold = await contract.get_threshold();
-      console.log("Threshold:", threshold.toString());
+      const txLen = await newContract.get_transactions_len();
+      const threshold = await newContract.get_threshold();
 
       // Fetch all transactions
       const allTxs: Transaction[] = [];
       for (let i = 0; i < Number(txLen.toString()); i++) {
-        const tx = await contract.get_transaction(i);
-        const isExecuted = await contract.is_executed(i);
+        const tx = await newContract.get_transaction(i);
+        const isExecuted = await newContract.is_executed(i);
         console.log(`Transaction ${i}:`, tx, "Executed:", isExecuted);
 
         const receiverHex =
@@ -248,42 +250,43 @@ export default function Home() {
         )}\n\nTransaction Length: ${txLen.toString()}`
       );
     };
+
     getContract();
   }, [account, refresh]);
 
-  const getSigners = async () => {
-    if (!contract) {
-      console.log("Contract not initialized yet");
-      return;
-    }
-    try {
-      // Get signers
-      const signersResult = await contract.get_signers();
-      console.log("Signers:", signersResult);
+  // const getSigners = async () => {
+  //   if (!contract) {
+  //     console.log("Contract not initialized yet");
+  //     return;
+  //   }
+  //   try {
+  //     // Get signers
+  //     const signersResult = await contract.get_signers();
+  //     console.log("Signers:", signersResult);
 
-      // Convert array of signers to hex strings
-      const hexSigners = signersResult.map(
-        (signer: bigint) => "0x" + signer.toString(16).padStart(64, "0")
-      );
+  //     // Convert array of signers to hex strings
+  //     const hexSigners = signersResult.map(
+  //       (signer: bigint) => "0x" + signer.toString(16).padStart(64, "0")
+  //     );
 
-      // Get transaction length
-      const txLen = await contract.get_transactions_len();
-      console.log("Transaction Length:", txLen.toString());
+  //     // Get transaction length
+  //     const txLen = await contract.get_transactions_len();
+  //     console.log("Transaction Length:", txLen.toString());
 
-      // Display both signers and transaction length
-      setData(
-        `Signers:\n${hexSigners.join(
-          "\n"
-        )}\n\nTransaction Length: ${txLen.toString()}`
-      );
-    } catch (error) {
-      console.error("Error:", error);
-    }
-  };
+  //     // Display both signers and transaction length
+  //     setData(
+  //       `Signers:\n${hexSigners.join(
+  //         "\n"
+  //       )}\n\nTransaction Length: ${txLen.toString()}`
+  //     );
+  //   } catch (error) {
+  //     console.error("Error:", error);
+  //   }
+  // };
 
-  useEffect(() => {
-    getSigners();
-  }, [contract]);
+  // useEffect(() => {
+  //   getSigners();
+  // }, [contract]);
 
   const handleCreateMultisig = async (signers: string[], threshold: number) => {
     console.log("Creating multisig:", { signers, threshold });
@@ -322,7 +325,7 @@ export default function Home() {
     amount: string,
     token: string
   ) => {
-    getSigners();
+    // getSigners();
     // console.log("Submitting transaction:", { receiver, amount, token });
     // const provider = new RpcProvider({
     //   nodeUrl: "https://free-rpc.nethermind.io/sepolia-juno",
@@ -504,7 +507,7 @@ export default function Home() {
   return (
     <div className="min-h-screen bg-[var(--tg-theme-bg-color)]">
       <div className="container max-w-2xl mx-auto p-4 space-y-6">
-        <div className="text-[var(--tg-theme-text-color)] space-y-4">
+        {/* <div className="text-[var(--tg-theme-text-color)] space-y-4">
           <h2>Debug Info:</h2>
           <div>
             <h3>ArgentTMA Instance:</h3>
@@ -522,17 +525,7 @@ export default function Home() {
             <h3>Number of Transactions:</h3>
             <pre className="overflow-auto">{data ? data : "Loading..."}</pre>
           </div>
-          {/* <div>
-            <h3>Signers:</h3>
-            <pre className="overflow-auto">
-              {signers.length > 0
-                ? signers.map((signer, index) => (
-                    <div key={index}>{signer}</div>
-                  ))
-                : "Loading signers..."}
-            </pre>
-          </div> */}
-        </div>
+        </div> */}
 
         <h1 className="text-[var(--tg-font-headline)] font-bold text-center mb-6 text-[var(--tg-theme-text-color)]">
           Multisig Wallet
@@ -558,6 +551,8 @@ export default function Home() {
                 onConfirm={handleConfirmTransaction}
                 onRevoke={handleRevokeConfirmation}
                 onExecute={handleExecuteTransaction}
+                contract={contract}
+                signerAddress={connectionResult?.account?.address}
               />
             </div>
 
