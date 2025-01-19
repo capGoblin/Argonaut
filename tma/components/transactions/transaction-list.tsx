@@ -44,6 +44,7 @@ export function TransactionsList({
   const [confirmedTxs, setConfirmedTxs] = useState<{ [key: string]: boolean }>(
     {}
   );
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const checkConfirmations = async () => {
@@ -70,8 +71,12 @@ export function TransactionsList({
     action: (txId: string) => Promise<void>
   ) => {
     setLoadingTxId(txId);
+    setErrorMessage(null);
     try {
       await action(txId);
+    } catch (error: any) {
+      setErrorMessage(error.message || "Transaction failed. Please try again.");
+      setTimeout(() => setErrorMessage(null), 3000); // Clear error after 3 seconds
     } finally {
       setLoadingTxId(null);
     }
@@ -82,6 +87,11 @@ export function TransactionsList({
 
   return (
     <>
+      {errorMessage && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
+          {errorMessage}
+        </div>
+      )}
       <ScrollArea className="h-[calc(100vh-12rem)] pr-0">
         <AnimatePresence initial={false}>
           {transactions.map((tx, index) => (
@@ -124,7 +134,12 @@ export function TransactionsList({
                             variant="outline"
                             size="sm"
                             onClick={(e) => {
+                              e.preventDefault();
                               e.stopPropagation();
+                              console.log(
+                                "Confirm button clicked for txId:",
+                                tx.id
+                              );
                               handleAction(tx.id, onConfirm);
                             }}
                             disabled={confirmedTxs[tx.id]}
@@ -135,12 +150,22 @@ export function TransactionsList({
                                 Confirmed
                               </>
                             ) : (
-                              <>
-                                {/* <Check className="w-4 h-4 mr-1" /> */}
-                                Confirm
-                              </>
+                              <>Confirm</>
                             )}
                           </Button>
+                          {confirmedTxs[tx.id] && tx.status === "pending" && (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAction(tx.id, onRevoke);
+                              }}
+                            >
+                              <X className="w-4 h-4 mr-1" />
+                              Revoke
+                            </Button>
+                          )}
                           {tx.confirmations >= tx.requiredConfirmations && (
                             <Button
                               variant="default"

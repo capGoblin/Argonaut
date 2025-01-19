@@ -151,8 +151,16 @@ export function TransactionDetailsModal({
                   <>Confirm</>
                 )}
               </Button>
-              {transaction.confirmations >=
-                transaction.requiredConfirmations && (
+              {isConfirmed && transaction.status === "pending" && (
+                <Button
+                  variant="outline"
+                  onClick={() => handleAction(onRevoke)}
+                >
+                  <X className="w-4 h-4 mr-1" />
+                  Revoke
+                </Button>
+              )}
+              {transaction.confirmations >= transaction.requiredConfirmations && (
                 <Button
                   variant="default"
                   onClick={() => handleAction(onExecute)}

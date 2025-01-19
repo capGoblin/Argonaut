@@ -102,19 +102,8 @@ export default function Home() {
   const [data, setData] = useState<any>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [refresh, setRefresh] = useState(0);
-
-  // useEffect(() => {
-  //   const connect = async () => {
-
-  //     setArgentTMAInstance(argentTMA);
-  //     console.log(argentTMA, "argentTMA");
-
-  //     const res = await argentTMA.connect();
-  //     setConnectionResult(res);
-  //     console.log(res, "res");
-  //   };
-  //   connect();
-  // }, []);
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     // Call connect() as soon as the app is loaded
@@ -157,19 +146,6 @@ export default function Home() {
 
   const handleConnect = async () => {
     console.log("handleConnect");
-    // await argentTMA.requestConnection({
-    //   callbackData: "custom_callback",
-    //   approvalRequests: [
-    //     {
-    //       tokenAddress:
-    //         "0x049D36570D4e46f48e99674bd3fcc84644DdD6b96F7C741B1562B82f9e004dC7",
-    //       amount: BigInt(1000000000000000000).toString(),
-    //       spender: "spender_address",
-    //     },
-    //   ],
-    // });
-
-    // await argentTMA.connect();
 
     const provider = new RpcProvider({
       nodeUrl: "https://free-rpc.nethermind.io/sepolia-juno",
@@ -178,15 +154,8 @@ export default function Home() {
     if (contractAbi === undefined) {
       throw new Error("no abi.");
     }
-    // setContractAbi(contractAbi);
     const contract = new Contract(contractAbi, contractAddress, provider);
     setContract(contract);
-    // const privateKey0 = connectionResult?.account?.signer?.pk;
-    // const account0Address = connectionResult?.account?.address;
-
-    // const account = new Account(provider, account0Address, privateKey0);
-
-    // 4. Connect account to contract (missing)
     contract.connect(account);
 
     await argentTMA.requestConnection({});
@@ -326,73 +295,73 @@ export default function Home() {
     token: string
   ) => {
     // getSigners();
-    // console.log("Submitting transaction:", { receiver, amount, token });
-    // const provider = new RpcProvider({
-    //   nodeUrl: "https://free-rpc.nethermind.io/sepolia-juno",
-    // });
+    console.log("Submitting transaction:", { receiver, amount, token });
+    const provider = new RpcProvider({
+      nodeUrl: "https://free-rpc.nethermind.io/sepolia-juno",
+    });
 
-    // const ethAmount = Number(amount);
-    // const weiAmount = ethAmount * 1e18; // 1 ETH = 1e18 wei
+    const ethAmount = Number(amount);
+    const weiAmount = ethAmount * 1e18; // 1 ETH = 1e18 wei
 
-    // // Convert wei to BigInt
-    // const bigIntAmount = BigInt(Math.floor(weiAmount));
+    // Convert wei to BigInt
+    const bigIntAmount = BigInt(Math.floor(weiAmount));
 
-    // // Convert to uint256
-    // const uint256Value = uint256.bnToUint256(bigIntAmount);
+    // Convert to uint256
+    const uint256Value = uint256.bnToUint256(bigIntAmount);
 
-    // const { abi: contractAbi } = await provider.getClassAt(contractAddress);
-    // if (contractAbi === undefined) {
-    //   throw new Error("no abi.");
-    // }
-    // // setContractAbi(contractAbi);
-    // const contract = new Contract(contractAbi, contractAddress, provider);
+    const { abi: contractAbi } = await provider.getClassAt(contractAddress);
+    if (contractAbi === undefined) {
+      throw new Error("no abi.");
+    }
+    // setContractAbi(contractAbi);
+    const contract = new Contract(contractAbi, contractAddress, provider);
 
-    // // const privateKey0 = connectionResult?.account?.signer?.pk;
-    // // const account0Address = connectionResult?.account?.address;
+    // const privateKey0 = connectionResult?.account?.signer?.pk;
+    // const account0Address = connectionResult?.account?.address;
 
-    // // const account = new Account(provider, account0Address, privateKey0);
+    // const account = new Account(provider, account0Address, privateKey0);
 
-    // // 4. Connect account to contract (missing)
-    // contract.connect(account);
+    // 4. Connect account to contract (missing)
+    contract.connect(account);
 
-    // const txLen = await contract.get_transactions_len();
-    // console.log("Transaction Length:", txLen.toString());
+    const txLen = await contract.get_transactions_len();
+    console.log("Transaction Length:", txLen.toString());
 
-    // // Convert txLen to proper nonce format
-    // const nonce = BigInt(txLen.toString()).toString(); // Use the txLen directly without adding 1
+    // Convert txLen to proper nonce format
+    const nonce = BigInt(txLen.toString()).toString(); // Use the txLen directly without adding 1
 
-    // const calls = contract.populate("submit_transaction", [
-    //   "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7", // to
-    //   "0x0083afd3f4caedc6eebf44246fe54e38c95e3179a5ec9ea81740eca5b482d12e", // function_selector
-    //   [
-    //     // function_calldata (as array)
-    //     receiver,
-    //     uint256Value.low.toString(16),
-    //     uint256Value.high.toString(16),
-    //   ],
-    //   nonce, // nonce
-    // ]);
+    const calls = contract.populate("submit_transaction", [
+      "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7", // to
+      "0x0083afd3f4caedc6eebf44246fe54e38c95e3179a5ec9ea81740eca5b482d12e", // function_selector
+      [
+        // function_calldata (as array)
+        receiver,
+        uint256Value.low.toString(16),
+        uint256Value.high.toString(16),
+      ],
+      nonce, // nonce
+    ]);
 
-    // const maxQtyGasAuthorized = BigInt(1800); // max quantity of gas authorized
-    // const maxPriceAuthorizeForOneGas = BigInt(40) * BigInt(1000000000000); // increased from 12 to 40 to cover current gas price
+    const maxQtyGasAuthorized = BigInt(1800); // max quantity of gas authorized
+    const maxPriceAuthorizeForOneGas = BigInt(70) * BigInt(1000000000000); // increased from 40 to 70 to cover current gas price
 
-    // const { transaction_hash } = await account.execute(calls, {
-    //   version: 3,
-    //   maxFee: 10 ** 15,
-    //   feeDataAvailabilityMode: RPC.EDataAvailabilityMode.L1,
-    //   resourceBounds: {
-    //     l1_gas: {
-    //       max_amount: num.toHex(maxQtyGasAuthorized),
-    //       max_price_per_unit: num.toHex(maxPriceAuthorizeForOneGas),
-    //     },
-    //     l2_gas: {
-    //       max_amount: num.toHex(0),
-    //       max_price_per_unit: num.toHex(0),
-    //     },
-    //   },
-    // });
+    const { transaction_hash } = await account.execute(calls, {
+      version: 3,
+      maxFee: 10 ** 15,
+      feeDataAvailabilityMode: RPC.EDataAvailabilityMode.L1,
+      resourceBounds: {
+        l1_gas: {
+          max_amount: num.toHex(maxQtyGasAuthorized),
+          max_price_per_unit: num.toHex(maxPriceAuthorizeForOneGas),
+        },
+        l2_gas: {
+          max_amount: num.toHex(0),
+          max_price_per_unit: num.toHex(0),
+        },
+      },
+    });
 
-    // await provider.waitForTransaction(transaction_hash);
+    await provider.waitForTransaction(transaction_hash);
 
     // // Convert 0.0001 ETH to wei
     // const ethAmount = Number("0.0001");
@@ -427,15 +396,22 @@ export default function Home() {
   };
 
   const handleConfirmTransaction = async (txId: string) => {
-    console.log("Confirming transaction:", txId);
+    setError(null);
+    setIsLoading(true);
     try {
-      // Convert txId to nonce (u128)
-      const nonce = BigInt(txId).toString();
+      if (!contract || !account) {
+        throw new Error("Please connect your wallet first");
+      }
 
+      const provider = new RpcProvider({
+        nodeUrl: "https://free-rpc.nethermind.io/sepolia-juno",
+      });
+
+      const nonce = BigInt(txId).toString();
       const calls = contract.populate("confirm_transaction", [nonce]);
 
-      const maxQtyGasAuthorized = BigInt(1800); // max quantity of gas authorized
-      const maxPriceAuthorizeForOneGas = BigInt(40) * BigInt(1000000000000); // max FRI authorized to pay 1 gas
+      const maxQtyGasAuthorized = BigInt(1800);
+      const maxPriceAuthorizeForOneGas = BigInt(70) * BigInt(1000000000000);
 
       const { transaction_hash } = await account.execute(calls, {
         version: 3,
@@ -453,27 +429,23 @@ export default function Home() {
         },
       });
 
-      await contract.provider.waitForTransaction(transaction_hash);
-      console.log("Transaction confirmed successfully");
-
-      // Trigger refresh by incrementing the counter
+      await provider.waitForTransaction(transaction_hash);
       setRefresh((prev) => prev + 1);
-    } catch (error) {
-      console.error("Error confirming transaction:", error);
+    } catch (error: any) {
+      setError(error.message || "Failed to confirm transaction");
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleRevokeConfirmation = async (txId: string) => {
     console.log("Revoking confirmation:", txId);
-  };
-
-  const handleExecuteTransaction = async (txId: string) => {
-    console.log("Executing transaction:", txId);
     try {
       // Convert txId to nonce (u128)
       const nonce = BigInt(txId).toString();
 
-      const calls = contract.populate("execute_transaction", [nonce]);
+      const calls = contract.populate("revoke_confirmation", [nonce]);
 
       const maxQtyGasAuthorized = BigInt(1800); // max quantity of gas authorized
       const maxPriceAuthorizeForOneGas = BigInt(40) * BigInt(1000000000000); // max FRI authorized to pay 1 gas
@@ -495,12 +467,56 @@ export default function Home() {
       });
 
       await contract.provider.waitForTransaction(transaction_hash);
-      console.log("Transaction executed successfully");
+      console.log("Confirmation revoked successfully");
 
       // Refresh the transactions list
       setRefresh((prev) => prev + 1);
     } catch (error) {
-      console.error("Error executing transaction:", error);
+      console.error("Error revoking confirmation:", error);
+    }
+  };
+
+  const handleExecuteTransaction = async (txId: string) => {
+    setError(null);
+    setIsLoading(true);
+    try {
+      if (!contract || !account) {
+        throw new Error("Please connect your wallet first");
+      }
+
+      const provider = new RpcProvider({
+        nodeUrl: "https://free-rpc.nethermind.io/sepolia-juno",
+      });
+
+      const nonce = BigInt(txId).toString();
+      const calls = contract.populate("execute_transaction", [nonce]);
+
+      const maxQtyGasAuthorized = BigInt(1800);
+      const maxPriceAuthorizeForOneGas = BigInt(70) * BigInt(1000000000000);
+
+      const { transaction_hash } = await account.execute(calls, {
+        version: 3,
+        maxFee: 10 ** 15,
+        feeDataAvailabilityMode: RPC.EDataAvailabilityMode.L1,
+        resourceBounds: {
+          l1_gas: {
+            max_amount: num.toHex(maxQtyGasAuthorized),
+            max_price_per_unit: num.toHex(maxPriceAuthorizeForOneGas),
+          },
+          l2_gas: {
+            max_amount: num.toHex(0),
+            max_price_per_unit: num.toHex(0),
+          },
+        },
+      });
+
+      await provider.waitForTransaction(transaction_hash);
+      setRefresh((prev) => prev + 1);
+    } catch (error: any) {
+      setError(error.message || "Failed to execute transaction");
+      setTimeout(() => setError(null), 3000);
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -545,6 +561,11 @@ export default function Home() {
           </div>
         ) : (
           <>
+            {error && (
+              <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
+                {error}
+              </div>
+            )}
             <div className="tg-card">
               <TransactionsList
                 transactions={transactions}
