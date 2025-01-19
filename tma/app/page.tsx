@@ -193,15 +193,24 @@ export default function Home() {
       for (let i = 0; i < Number(txLen.toString()); i++) {
         const tx = await newContract.get_transaction(i);
         const isExecuted = await newContract.is_executed(i);
-        console.log(`Transaction ${i}:`, tx, "Executed:", isExecuted);
+        console.log(`Transaction ${i}:`, tx);
 
+        // Get the receiver address from calldata[0]
         const receiverHex =
-          "0x" + BigInt(tx[0].to).toString(16).padStart(64, "0");
+          tx[1] && tx[1][0]
+            ? "0x" + BigInt(tx[1][0]).toString(16).padStart(64, "0")
+            : "0x" + BigInt(tx[0].to).toString(16).padStart(64, "0");
+
+        // Get amount from calldata[1] and calldata[2] if they exist
+        const amountLow = tx[1] && tx[1][1] ? BigInt(tx[1][1]) : BigInt(0);
+        const amountHigh = tx[1] && tx[1][2] ? BigInt(tx[1][2]) : BigInt(0);
+        const amount = ((amountHigh << BigInt(128)) + amountLow).toString();
+        const ethAmount = Number(amount) / 1e18; // Convert from wei to ETH
 
         allTxs.push({
           id: i.toString(),
           receiver: receiverHex,
-          amount: "0.0001",
+          amount: ethAmount.toFixed(4),
           token: "ETH",
           confirmations: Number(tx[0].confirmations),
           requiredConfirmations: Number(threshold.toString()),

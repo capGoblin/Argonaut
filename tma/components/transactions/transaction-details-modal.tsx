@@ -160,7 +160,8 @@ export function TransactionDetailsModal({
                   Revoke
                 </Button>
               )}
-              {transaction.confirmations >= transaction.requiredConfirmations && (
+              {transaction.confirmations >=
+                transaction.requiredConfirmations && (
                 <Button
                   variant="default"
                   onClick={() => handleAction(onExecute)}
