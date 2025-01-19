@@ -12,7 +12,7 @@ if (!MY_TOKEN || !SERVER_URL) {
   );
 }
 
-const BASE_URL = `https://api.telegram.org/bot${MY_TOKEN}`;
+const BASE_URL = `https://api.telegram.org/bot${MY_TOKEN}/test`;
 const WEBHOOK_URL = `${SERVER_URL}/webhook/${MY_TOKEN}`;
 
 interface CustomAxiosInstance {
