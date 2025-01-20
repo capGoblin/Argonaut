@@ -103,13 +103,13 @@ export function TransactionsList({
               transition={{ duration: 0.2, delay: index * 0.05 }}
             >
               <Card
-                className="p-3 mb-3 cursor-pointer hover:shadow-md transition-shadow w-full"
+                className="p-3 mb-3 cursor-pointer hover:shadow-md transition-shadow w-full overflow-hidden"
                 onClick={() => setSelectedTx(tx)}
               >
                 <div className="flex flex-col space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="truncate">
-                      <p className="font-medium">
+                  <div className="flex items-center justify-between w-full">
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">
                         To: {truncateAddress(tx.receiver)}
                       </p>
                       <p className="text-sm text-muted-foreground">
@@ -125,7 +125,7 @@ export function TransactionsList({
                       confirmations
                     </div>
 
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-2">
                       {loadingTxId === tx.id ? (
                         <Loader2 className="w-4 h-4 animate-spin" />
                       ) : (
@@ -166,26 +166,27 @@ export function TransactionsList({
                               Revoke
                             </Button>
                           )}
-                          {tx.confirmations >= tx.requiredConfirmations && (
-                            <Button
-                              variant="default"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                handleAction(tx.id, onExecute);
-                              }}
-                              disabled={tx.status === "executed"}
-                            >
-                              {tx.status === "executed" ? (
-                                <>
-                                  <Check className="w-4 h-4 mr-1" />
-                                  Executed
-                                </>
-                              ) : (
-                                <>Execute</>
-                              )}
-                            </Button>
-                          )}
+                          <Button
+                            variant="default"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleAction(tx.id, onExecute);
+                            }}
+                            disabled={
+                              tx.status === "executed" ||
+                              tx.confirmations < tx.requiredConfirmations
+                            }
+                          >
+                            {tx.status === "executed" ? (
+                              <>
+                                <Check className="w-4 h-4 mr-1" />
+                                Executed
+                              </>
+                            ) : (
+                              <>Execute</>
+                            )}
+                          </Button>
                         </>
                       )}
                     </div>

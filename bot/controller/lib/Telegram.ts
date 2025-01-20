@@ -12,7 +12,7 @@ interface TelegramMessage {
 }
 
 const contractAddress =
-  "0x0769541b749506a33525e4fef21f9772ef51380a72818c8b88678ef359db16da";
+  "0x021a9763bc727b5cb431364acadbaa76b6c616b80d08713ae194a83eed78de4e";
 
 const startMessage = `
 🚀 *Welcome to Argonaut Multisig Bot!*

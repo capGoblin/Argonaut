@@ -126,7 +126,7 @@ export function SubmitTransactionForm({
           </div>
         </div>
 
-        {estimatedGas && (
+        {/* {estimatedGas && (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
@@ -134,7 +134,7 @@ export function SubmitTransactionForm({
           >
             Estimated Gas: {estimatedGas}
           </motion.div>
-        )}
+        )} */}
       </Card>
 
       <Button type="submit" className="w-full" disabled={isSubmitting}>

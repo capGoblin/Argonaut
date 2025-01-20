@@ -37,13 +37,18 @@ const mockTransactions: Transaction[] = [
     timestamp: Date.now(),
   },
 ];
+// const contractAddress =
+//   "0x0769541b749506a33525e4fef21f9772ef51380a72818c8b88678ef359db16da";
+// const contractAddress =
+//   "0x01346651bbe36a643d0c1463c3fb545c7c7b8ed6d966cc718318e27fe45fe99d";
 const contractAddress =
-  "0x0769541b749506a33525e4fef21f9772ef51380a72818c8b88678ef359db16da";
+  "0x021a9763bc727b5cb431364acadbaa76b6c616b80d08713ae194a83eed78de4e";
+
 const argentTMA = ArgentTMA.init({
   environment: "sepolia",
   appName: "Argonaut",
-  // appTelegramUrl: "https://t.me/theargonautbot/argonautapp",
-  appTelegramUrl: "https://t.me/boottbot/bbooot",
+  appTelegramUrl: "https://t.me/theargonautbot/argonautapp",
+  // appTelegramUrl: "https://t.me/boottbot/bbooot",
   sessionParams: {
     allowedMethods: [
       // List of contracts/methods allowed to be called by the session key
@@ -54,10 +59,6 @@ const argentTMA = ArgentTMA.init({
       {
         contract: contractAddress,
         selector: "confirm_transaction",
-      },
-      {
-        contract: contractAddress,
-        selector: "revoke_confirmation",
       },
       {
         contract: contractAddress,
@@ -79,12 +80,8 @@ const argentTMA = ArgentTMA.init({
         contract: contractAddress,
         selector: "get_transaction",
       },
-      {
-        contract: contractAddress,
-        selector: "is_confirmed",
-      },
     ],
-    validityDays: 90, // session validity (in days) - default: 90
+    validityDays: 30, // session validity (in days) - default: 90
   },
 });
 
@@ -98,6 +95,7 @@ export default function Home() {
   const [connectionResult, setConnectionResult] = useState<any>(null);
   const [contractAbi, setContractAbi] = useState<any>(null);
   const [contract, setContract] = useState<any>(null);
+  const [debugInfo, setDebugInfo] = useState<string[]>([]);
 
   const [data, setData] = useState<any>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -297,111 +295,121 @@ export default function Home() {
     }
     setActiveDialog(null);
   };
-
+  const handleDisconnect = async () => {
+    try {
+      await argentTMA.clearSession();
+      setIsConnected(false);
+      setAccount(null);
+      setConnectionResult(null);
+    } catch (error) {
+      console.error("Error disconnecting:", error);
+    }
+  };
   const handleSubmitTransaction = async (
     receiver: string,
     amount: string,
     token: string
   ) => {
-    // getSigners();
-    console.log("Submitting transaction:", { receiver, amount, token });
-    const provider = new RpcProvider({
-      nodeUrl: "https://free-rpc.nethermind.io/sepolia-juno",
-    });
+    // setDebugInfo([]); // Clear previous debug info
+    try {
+      // setDebugInfo((prev) => [
+      //   ...prev,
+      //   "🚀 Starting transaction submission...",
+      // ]);
+      // setDebugInfo((prev) => [...prev, `📍 Receiver: ${receiver}`]);
+      // setDebugInfo((prev) => [...prev, `💰 Amount: ${amount} ${token}`]);
 
-    const ethAmount = Number(amount);
-    const weiAmount = ethAmount * 1e18; // 1 ETH = 1e18 wei
+      const provider = new RpcProvider({
+        nodeUrl: "https://free-rpc.nethermind.io/sepolia-juno",
+      });
 
-    // Convert wei to BigInt
-    const bigIntAmount = BigInt(Math.floor(weiAmount));
+      const ethAmount = Number(amount);
+      const weiAmount = ethAmount * 1e18;
+      // setDebugInfo((prev) => [...prev, `🔢 Wei Amount: ${weiAmount}`]);
 
-    // Convert to uint256
-    const uint256Value = uint256.bnToUint256(bigIntAmount);
+      const bigIntAmount = BigInt(Math.floor(weiAmount));
+      const uint256Value = uint256.bnToUint256(bigIntAmount);
+      // setDebugInfo((prev) => [
+      //   ...prev,
+      //   `📊 Amount Low: ${uint256Value.low.toString(16)}`,
+      // ]);
+      // setDebugInfo((prev) => [
+      //   ...prev,
+      //   `📊 Amount High: ${uint256Value.high.toString(16)}`,
+      // ]);
 
-    const { abi: contractAbi } = await provider.getClassAt(contractAddress);
-    if (contractAbi === undefined) {
-      throw new Error("no abi.");
+      const { abi: contractAbi } = await provider.getClassAt(contractAddress);
+      if (contractAbi === undefined) {
+        throw new Error("no abi.");
+      }
+      const contract = new Contract(contractAbi, contractAddress, provider);
+      contract.connect(account);
+
+      const txLen = await contract.get_transactions_len();
+      const nonce = BigInt(txLen.toString()).toString();
+      // setDebugInfo((prev) => [...prev, `🔄 Nonce: ${nonce}`]);
+
+      const calls = contract.populate("submit_transaction", [
+        "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7", // Using receiver as 'to' parameter
+        "0x0083afd3f4caedc6eebf44246fe54e38c95e3179a5ec9ea81740eca5b482d12e",
+        [
+          receiver,
+          uint256Value.low.toString(16),
+          uint256Value.high.toString(16),
+        ],
+        nonce,
+      ]);
+      // setDebugInfo((prev) => [...prev, "📝 Populated transaction call"]);
+
+      const maxQtyGasAuthorized = BigInt(4000);
+      const maxPriceAuthorizeForOneGas = BigInt(70) * BigInt(1000000000000);
+
+      // setDebugInfo((prev) => [...prev, `⛽ Gas Limit: ${maxQtyGasAuthorized}`]);
+      // setDebugInfo((prev) => [
+      //   ...prev,
+      //   `💰 Gas Price: ${maxPriceAuthorizeForOneGas}`,
+      // ]);
+
+      // setDebugInfo((prev) => [...prev, "⏳ Executing transaction..."]);
+      const { transaction_hash } = await account.execute(calls, {
+        version: 3,
+        maxFee: 10 ** 15,
+        feeDataAvailabilityMode: RPC.EDataAvailabilityMode.L1,
+        resourceBounds: {
+          l1_gas: {
+            max_amount: num.toHex(maxQtyGasAuthorized),
+            max_price_per_unit: num.toHex(maxPriceAuthorizeForOneGas),
+          },
+          l2_gas: {
+            max_amount: num.toHex(0),
+            max_price_per_unit: num.toHex(0),
+          },
+        },
+      });
+
+      // setDebugInfo((prev) => [
+      //   ...prev,
+      //   `📜 Transaction Hash: ${transaction_hash}`,
+      // ]);
+      // setDebugInfo((prev) => [
+      //   ...prev,
+      //   "⌛ Waiting for transaction confirmation...",
+      // ]);
+
+      await provider.waitForTransaction(transaction_hash);
+      // setDebugInfo((prev) => [
+      //   ...prev,
+      //   "✅ Transaction confirmed successfully!",
+      // ]);
+
+      // setTimeout(() => {
+      //   setDebugInfo([]);
+      // }, 5000);
+      setActiveDialog(null);
+    } catch (error: any) {
+      // setDebugInfo((prev) => [...prev, `❌ Error: ${error.message}`]);
+      console.error("Error submitting transaction:", error);
     }
-    // setContractAbi(contractAbi);
-    const contract = new Contract(contractAbi, contractAddress, provider);
-
-    // const privateKey0 = connectionResult?.account?.signer?.pk;
-    // const account0Address = connectionResult?.account?.address;
-
-    // const account = new Account(provider, account0Address, privateKey0);
-
-    // 4. Connect account to contract (missing)
-    contract.connect(account);
-
-    const txLen = await contract.get_transactions_len();
-    console.log("Transaction Length:", txLen.toString());
-
-    // Convert txLen to proper nonce format
-    const nonce = BigInt(txLen.toString()).toString(); // Use the txLen directly without adding 1
-
-    const calls = contract.populate("submit_transaction", [
-      "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7", // to
-      "0x0083afd3f4caedc6eebf44246fe54e38c95e3179a5ec9ea81740eca5b482d12e", // function_selector
-      [
-        // function_calldata (as array)
-        receiver,
-        uint256Value.low.toString(16),
-        uint256Value.high.toString(16),
-      ],
-      nonce, // nonce
-    ]);
-
-    const maxQtyGasAuthorized = BigInt(1800); // max quantity of gas authorized
-    const maxPriceAuthorizeForOneGas = BigInt(70) * BigInt(1000000000000); // increased from 40 to 70 to cover current gas price
-
-    const { transaction_hash } = await account.execute(calls, {
-      version: 3,
-      maxFee: 10 ** 15,
-      feeDataAvailabilityMode: RPC.EDataAvailabilityMode.L1,
-      resourceBounds: {
-        l1_gas: {
-          max_amount: num.toHex(maxQtyGasAuthorized),
-          max_price_per_unit: num.toHex(maxPriceAuthorizeForOneGas),
-        },
-        l2_gas: {
-          max_amount: num.toHex(0),
-          max_price_per_unit: num.toHex(0),
-        },
-      },
-    });
-
-    await provider.waitForTransaction(transaction_hash);
-
-    // // Convert 0.0001 ETH to wei
-    // const ethAmount = Number("0.0001");
-    // const weiAmount = ethAmount * 1e18; // 1 ETH = 1e18 wei
-
-    // // Convert wei to BigInt
-    // const bigIntAmount = BigInt(Math.floor(weiAmount));
-
-    // // Convert to uint256
-    // const uint256Value = uint256.bnToUint256(bigIntAmount);
-
-    // // Now you can use uint256Value.low and uint256Value.high in your calldata
-    // const calldata = [
-    //   "0x049d36570d4e46f48e99674bd3fcc84644ddd6b96f7c741b1562b82f9e004dc7", // to
-    //   "0x0083afd3f4caedc6eebf44246fe54e38c95e3179a5ec9ea81740eca5b482d12e", // selector
-    //   "3", // calldata_len
-    //   "0x033439fff5aa4782fd2323a01c5F51a1c1F98Cd6c1C824784EE45b3c4AFe1b79", // recipient
-    //   uint256Value.low.toString(16), // amount low
-    //   uint256Value.high.toString(16), // amount high
-    //   "0", // salt
-    // ];
-
-    // const result = await account.execute({
-    //   contractAddress: contractAddress,
-    //   entrypoint: "submit_transaction",
-    //   calldata: calldata,
-    // });
-    // console.log(result, "result");
-    // await provider.waitForTransaction(result.transaction_hash);
-
-    setActiveDialog(null);
   };
 
   const handleConfirmTransaction = async (txId: string) => {
@@ -419,7 +427,7 @@ export default function Home() {
       const nonce = BigInt(txId).toString();
       const calls = contract.populate("confirm_transaction", [nonce]);
 
-      const maxQtyGasAuthorized = BigInt(1800);
+      const maxQtyGasAuthorized = BigInt(4000);
       const maxPriceAuthorizeForOneGas = BigInt(70) * BigInt(1000000000000);
 
       const { transaction_hash } = await account.execute(calls, {
@@ -456,7 +464,7 @@ export default function Home() {
 
       const calls = contract.populate("revoke_confirmation", [nonce]);
 
-      const maxQtyGasAuthorized = BigInt(1800); // max quantity of gas authorized
+      const maxQtyGasAuthorized = BigInt(4000); // max quantity of gas authorized
       const maxPriceAuthorizeForOneGas = BigInt(40) * BigInt(1000000000000); // max FRI authorized to pay 1 gas
 
       const { transaction_hash } = await account.execute(calls, {
@@ -500,7 +508,7 @@ export default function Home() {
       const nonce = BigInt(txId).toString();
       const calls = contract.populate("execute_transaction", [nonce]);
 
-      const maxQtyGasAuthorized = BigInt(1800);
+      const maxQtyGasAuthorized = BigInt(4000);
       const maxPriceAuthorizeForOneGas = BigInt(70) * BigInt(1000000000000);
 
       const { transaction_hash } = await account.execute(calls, {
@@ -553,8 +561,21 @@ export default function Home() {
         </div> */}
 
         <h1 className="text-[var(--tg-font-headline)] font-bold text-center mb-6 text-[var(--tg-theme-text-color)]">
-          Multisig Wallet
+          Argonaut Multisig Wallet
         </h1>
+        {/* <div className="flex justify-between items-center">
+          <h1 className="text-[var(--tg-font-headline)] font-bold text-center mb-6 text-[var(--tg-theme-text-color)]">
+            Argonaut Multisig Wallet
+          </h1>
+          {isConnected && (
+            <button
+              className="tg-button-secondary h-10 px-4 flex items-center justify-center touch-feedback"
+              onClick={handleDisconnect}
+            >
+              Disconnect
+            </button>
+          )}
+        </div> */}
 
         {!isConnected ? (
           <div className="flex flex-col items-center justify-center space-y-4">
@@ -575,7 +596,7 @@ export default function Home() {
                 {error}
               </div>
             )}
-            <div className="tg-card">
+            <div className="tg-card px-2 sm:px-4">
               <TransactionsList
                 transactions={transactions}
                 onConfirm={handleConfirmTransaction}
@@ -627,10 +648,23 @@ export default function Home() {
                 <SubmitTransactionForm
                   onSubmit={handleSubmitTransaction}
                   supportedTokens={["ETH", "STRK"]}
-                  estimatedGas="0.001 ETH"
+                  estimatedGas="0.00001 ETH"
                 />
               </DialogContent>
             </Dialog>
+
+            {isConnected && debugInfo.length > 0 && (
+              <div className="fixed top-4 right-4 left-4 z-50">
+                <div className="bg-black/90 text-green-400 p-4 rounded-lg shadow-lg font-mono text-sm max-h-[70vh] overflow-y-auto">
+                  <h3 className="text-white mb-2">Debug Information:</h3>
+                  {debugInfo.map((info, index) => (
+                    <div key={index} className="mb-1">
+                      {info}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </>
         )}
       </div>
