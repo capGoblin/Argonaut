@@ -3,7 +3,7 @@
 ## 🌟 **Project Overview**  
 Argonaut is a Telegram-based multisig wallet solution powered by Starknet, designed to simplify decentralized treasury management. It combines the familiarity of Telegram with the security and transparency of blockchain. Through Argonaut, users can propose, approve, revoke confirmations, and execute multisig transactions directly from their Telegram group. This makes group fund management seamless, accessible, and secure.
 
-The name **Argonaut** is inspired by the legendary Greek adventurers, the Argonauts, who sailed with Jason aboard the ship Argo in search of the Golden Fleece. This symbolizes teamwork and collaboration, much like how Argonaut enables groups to securely manage decentralized funds together.
+> The name **Argonaut** is inspired by the legendary Greek adventurers, the Argonauts, who sailed with Jason aboard the ship Argo in search of the Golden Fleece. This symbolizes teamwork and collaboration, much like how Argonaut enables groups to securely manage decentralized funds together.
 
 ## 📈 **Key Features**
 
