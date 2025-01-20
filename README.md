@@ -7,13 +7,6 @@ Argonaut is a Telegram-based multisig wallet solution powered by Starknet, desig
 
 ## 📈 **Key Features**
 
-**Comprehensive Command Suite:**  
-- 📝 **/listTxns**: View all transactions with their status.  
-- 👥 **/listSigners**: View current wallet signers.  
-- 🔢 **/getThreshold**: Check the number of approvals required.  
-- 📊 **/txStats**: Get transaction statistics for analytics.  
-- 🔍 **/txInfo <txId>**: Fetch detailed info about specific transactions.
-
 **Interactive Mini App in Telegram:**  
 - Submit transactions with a simple interface.  
 - Use selectors for key actions like submit_transaction, confirm_transaction, execute_transaction, and revoke_confirmation.
@@ -24,8 +17,13 @@ Argonaut is a Telegram-based multisig wallet solution powered by Starknet, desig
 **Starknet-Powered Multisig Contract:**  
 - Transparent and decentralized management of funds.
 
-**Analytics and Transparency:**  
-- View transaction stats and signer activities directly via Telegram bot.
+**Comprehensive Command Suite:**
+
+View transaction stats and signer activities directly via bot commands.
+- 📝 `/listTxns`: View all transactions with their status.
+- 👥 `/listSigners`: View current wallet signers.
+- 🔢 `/getThreshold`: Check the number of approvals required.
+- 📊 `/txStats`: Get transaction statistics for analytics.
 
 ## 🏋️ **Explain Your Features**
 
@@ -114,3 +112,6 @@ Argonaut stands out by turning Telegram groups into a secure, user-friendly plat
 - **Signers:**  
   - [Signer 1](https://sepolia.voyager.online/contract/0x0796DBE51f8A436621f7a12F19FEB9C01d9314d92660d132c560dF7483eC4913)  
   - [Signer 2](https://sepolia.voyager.online/contract/0x01BA9Fed9DE5545D2e90A4a9A165c16994A2FF3dcc5EDE8f4F72D87413767BF3)
+
+
+Credits to Eqlabs for multisig contract: https://github.com/eqlabs/starknet-multisig
